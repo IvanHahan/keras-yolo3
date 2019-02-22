@@ -1,5 +1,5 @@
 import argparse
-from train_yolo.yolo import YOLO, detect_video
+from .yolo import YOLO, detect_video
 from PIL import Image
 
 def detect_img(yolo):
