@@ -4,7 +4,6 @@ Class definition of YOLO_v3 style detection model on image and video
 """
 
 import colorsys
-import os
 from timeit import default_timer as timer
 
 import numpy as np
@@ -13,10 +12,10 @@ from keras.models import load_model
 from keras.layers import Input
 from PIL import Image, ImageFont, ImageDraw
 
-from yolo3.model import yolo_eval, yolo_body, tiny_yolo_body
-from yolo3.utils import letterbox_image
+from .model import yolo_eval, yolo_body, tiny_yolo_body
+from .utils import letterbox_image
 import os
-from keras.utils import multi_gpu_model
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 from keras.utils import multi_gpu_model
 gpu_num=1
@@ -26,7 +25,7 @@ class YOLO(object):
         "model_path": 'model_data/yolo.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/coco_classes.txt',
-        "score" : 0.3,
+        "score" : 0.1, # 0.3
         "iou" : 0.45,
         "model_image_size" : (416, 416),
         "gpu_num" : 1,
@@ -49,6 +48,7 @@ class YOLO(object):
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
+        print(classes_path)
         with open(classes_path) as f:
             class_names = f.readlines()
         class_names = [c.strip() for c in class_names]
@@ -131,7 +131,7 @@ class YOLO(object):
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
-        font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
+        font = ImageFont.truetype(font='/Users/UnicornKing/PyCharmProjects/screenshotprocessing/keras_yolo/font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
 

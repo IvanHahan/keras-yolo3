@@ -8,9 +8,8 @@ from keras.layers import Input, Lambda
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-
-from .yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
-from .yolo3.utils import get_random_data
+from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
+from yolo3.utils import get_random_data
 import os
 
 
@@ -19,7 +18,7 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (416,416) # multiple of 32, hw
+    input_shape = (800,500) # multiple of 32, hw
 
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
