@@ -13,12 +13,12 @@ from yolo3.utils import get_random_data
 import os
 
 
-def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_weights=None, epochs=100, initial_epoch=50):
+def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_weights=None,
+          epochs=100, initial_epoch=50, input_shape=(416,416), batch_size=32):
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (800,500) # multiple of 32, hw
 
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
@@ -50,7 +50,7 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
             # use custom yolo_loss Lambda layer.
             'yolo_loss': lambda y_true, y_pred: y_pred})
 
-        batch_size = 32
+
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
                 steps_per_epoch=max(1, num_train//batch_size),
@@ -69,7 +69,7 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
-        batch_size = 32 # note that more GPU memory is required after unfreezing the body
+         # note that more GPU memory is required after unfreezing the body
         print('Train on {} samples, val on {} samples, with batch size {}.'.format(num_train, num_val, batch_size))
         model.fit_generator(data_generator_wrapper(lines[:num_train], batch_size, input_shape, anchors, num_classes),
             steps_per_epoch=max(1, num_train//batch_size),
@@ -187,8 +187,8 @@ def data_generator_wrapper(annotation_lines, batch_size, input_shape, anchors, n
 
 
 if __name__ == '__main__':
-    annotation_path = '/Users/UnicornKing/PyCharmProjects/screenshotprocessing/train_yolo_control_classifier/annotations.txt'
+    annotation_path = '/Users/UnicornKing/PyCharmProjects/screenshotprocessing/resources/input/yolo/annotations.txt'
     log_dir = 'logs/000/'
-    classes_path = '/Users/UnicornKing/PyCharmProjects/screenshotprocessing/train_yolo_control_classifier/classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
-    train(annotation_path, classes_path, anchors_path, log_dir)
+    classes_path = '/Users/UnicornKing/PyCharmProjects/screenshotprocessing/resources/input/yolo/classes.txt'
+    anchors_path = '/Users/UnicornKing/PyCharmProjects/screenshotprocessing/keras_yolo/model_data/tiny_yolo_anchors.txt'
+    train(annotation_path, classes_path, anchors_path, log_dir, input_shape=(512, 800), batch_size=32)

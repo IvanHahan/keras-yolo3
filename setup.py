@@ -1,8 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 setup(
     name="yolo3",
-    packages=['yolo3', 'train'],
-    version='1.0.4',
+    packages=find_packages(),
+    version='1.0.7',
     )
