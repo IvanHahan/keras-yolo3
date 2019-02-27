@@ -14,7 +14,8 @@ import os
 
 
 def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_weights=None,
-          epochs=100, initial_epoch=50, input_shape=(416,416), batch_size=32):
+          fst_stage_epochs=100, snd_stage_epochs=100, input_shape=(416,416), batch_size=32,
+          fst_lr=1e-3, snd_lr=1e-4, monitor='val_loss'):
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
@@ -30,9 +31,9 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
 
     logging = TensorBoard(log_dir=log_dir)
     checkpoint = ModelCheckpoint(os.path.join(log_dir, 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5'),
-        monitor='val_loss', save_weights_only=True, save_best_only=True, period=3)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
+        monitor=monitor, save_weights_only=True, save_best_only=True, period=3)
+    reduce_lr = ReduceLROnPlateau(monitor=monitor, factor=0.1, patience=3, verbose=1)
+    early_stopping = EarlyStopping(monitor=monitor, min_delta=0, patience=10, verbose=1)
 
     val_split = 0.1
     with open(annotation_path) as f:
@@ -46,7 +47,7 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
     # Train with frozen layers first, to get a stable loss.
     # Adjust num epochs to your dataset. This step is enough to obtain a not bad model.
     if True:
-        model.compile(optimizer=Adam(lr=1e-3), loss={
+        model.compile(optimizer=Adam(lr=fst_lr), loss={
             # use custom yolo_loss Lambda layer.
             'yolo_loss': lambda y_true, y_pred: y_pred})
 
@@ -56,9 +57,9 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
                 steps_per_epoch=max(1, num_train//batch_size),
                 validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
                 validation_steps=max(1, num_val//batch_size),
-                epochs=epochs // 2,
+                epochs=fst_stage_epochs,
                 initial_epoch=0,
-                callbacks=[logging, checkpoint])
+                callbacks=[logging])
         model.save_weights(log_dir + 'trained_weights_stage_1.h5')
 
     # Unfreeze and continue training, to fine-tune.
@@ -66,7 +67,7 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
     if True:
         for i in range(len(model.layers)):
             model.layers[i].trainable = True
-        model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+        model.compile(optimizer=Adam(lr=snd_lr), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
         print('Unfreeze all of the layers.')
 
          # note that more GPU memory is required after unfreezing the body
@@ -75,9 +76,9 @@ def train(annotation_path, classes_path, anchors_path, log_dir='logs/', yolo_wei
             steps_per_epoch=max(1, num_train//batch_size),
             validation_data=data_generator_wrapper(lines[num_train:], batch_size, input_shape, anchors, num_classes),
             validation_steps=max(1, num_val//batch_size),
-            epochs=epochs,
-            initial_epoch=initial_epoch,
-            callbacks=[logging, checkpoint, reduce_lr, early_stopping])
+            epochs=fst_stage_epochs + snd_stage_epochs,
+            initial_epoch=fst_stage_epochs,
+            callbacks=[logging, reduce_lr, early_stopping])
         model.save_weights(log_dir + 'trained_weights_final.h5')
 
     # Further training if needed.
